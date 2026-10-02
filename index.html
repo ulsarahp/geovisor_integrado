@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geovisor CONANP Integrado</title>
+    <meta name="description" content="Geovisor CONANP integrado con capas, dashboard, búsqueda, análisis y filtros." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="assets/css/geovisor.css" />
+  </head>
+  <body>
+    <header id="header">
+      <div class="header-brand">
+        <div class="header-logo-wrap"><i class="fas fa-earth-americas"></i></div>
+        <div class="header-title">
+          <div class="header-title-main">Geovisor CONANP</div>
+          <div class="header-title-sub">Sistema de Información Geográfica CONANP</div>
+        </div>
+      </div>
+
+      <div class="header-status" id="system-status">
+        <span class="status-dot"></span>
+        <span id="system-status-text">Sin conexión</span>
+      </div>
+
+      <div class="header-help">
+        <button id="btn-tour-header" title="Recorrido guiado"><i class="fas fa-graduation-cap"></i></button>
+        <button id="btn-faq-header" title="Preguntas frecuentes"><i class="fas fa-circle-question"></i></button>
+      </div>
+
+      <button id="theme-toggle" aria-label="Cambiar tema"><i class="fas fa-sun"></i></button>
+
+      <nav class="header-tabs" aria-label="Secciones">
+        <button class="tab active" data-tab="general"><i class="fas fa-map-marked-alt"></i>General</button>
+        <button class="tab" data-tab="advc"><i class="fas fa-tree"></i>ADVC</button>
+        <button class="tab" data-tab="dashboard"><i class="fas fa-chart-line"></i>Dashboard</button>
+      </nav>
+    </header>
+
+    <div id="main">
+      <aside id="panel" aria-label="Panel lateral">
+        <div class="panel-header-row">
+          <h2><i class="fas fa-layers"></i> Capas del mapa</h2>
+          <button class="panel-close" id="panel-close" aria-label="Cerrar panel"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="status" class="status-box">Listo para consultar</div>
+
+        <div id="contador">
+          <div class="stat-pill stat-anp">
+            <span class="stat-pill-label">ANP en vista</span>
+            <span class="stat-pill-value" id="cont-anp">—</span>
+          </div>
+          <div class="stat-pill stat-advc">
+            <span class="stat-pill-label">ADVC en vista</span>
+            <span class="stat-pill-value" id="cont-advc">—</span>
+          </div>
+        </div>
+
+        <div id="buscador">
+          <label for="inputBusqueda" class="sr-only">Buscar</label>
+          <input id="inputBusqueda" type="text" placeholder="Buscar área o polígono…" autocomplete="off" />
+          <button class="btn-search" id="btnBuscar" aria-label="Buscar"><i class="fas fa-search"></i></button>
+        </div>
+
+        <div id="resultados-busqueda"></div>
+
+        <div id="cargar-capa">
+          <button class="btn-upload" id="btnCargarCapa"><i class="fas fa-upload"></i> Cargar capa local</button>
+          <input type="file" id="inputCargarCapa" accept=".geojson,.json,.kml,.zip" multiple style="display:none;" />
+        </div>
+
+        <div id="analisis-panel">
+          <div class="analisis-title"><i class="fas fa-flask"></i> Análisis espacial</div>
+          <div class="analisis-desc">Cruza tu información con capas CONANP. Dibuja en el mapa o carga una capa para activar.</div>
+
+          <label for="analisis-fuente">Fuente — usuario / dibujo</label>
+          <select id="analisis-fuente">
+            <option value="">— Selecciona fuente —</option>
+          </select>
+
+          <label for="analisis-destino">Destino — CONANP</label>
+          <select id="analisis-destino">
+            <option value="">— Selecciona destino —</option>
+          </select>
+
+          <button class="btn-analizar" id="btn-ejecutar-analisis" disabled><i class="fas fa-chart-bar"></i> Analizar vs capa CONANP</button>
+        </div>
+
+        <div class="section-label"><i class="fas fa-database"></i> Capas disponibles</div>
+
+        <div id="capa-list">
+          <div id="list-container">
+            <div class="layer-item">
+              <div class="layer-main">
+                <input type="checkbox" checked />
+                <span>ANP</span>
+              </div>
+              <div class="layer-actions"><button>i</button></div>
+            </div>
+            <div class="layer-item">
+              <div class="layer-main">
+                <input type="checkbox" checked />
+                <span>ADVC</span>
+              </div>
+              <div class="layer-actions"><button>i</button></div>
+            </div>
+            <div class="layer-item">
+              <div class="layer-main">
+                <input type="checkbox" />
+                <span>Regiones CONANP</span>
+              </div>
+              <div class="layer-actions"><button>i</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="grafico-anp-conteo" class="grafico-container">
+          <h4>
+            <span><i class="fas fa-chart-bar"></i> Número de ANP por Categoría de Manejo</span>
+            <button class="btn-expandir" aria-label="Ampliar gráfico">⤢</button>
+          </h4>
+          <canvas id="chartAnpCount"></canvas>
+        </div>
+
+        <div id="grafico-anp-superficie" class="grafico-container">
+          <h4>
+            <span><i class="fas fa-chart-pie"></i> Superficie de ANP por Categoría</span>
+            <button class="btn-expandir" aria-label="Ampliar gráfico">⤢</button>
+          </h4>
+          <canvas id="chartAnpArea"></canvas>
+        </div>
+
+        <div id="grafico-advc" class="grafico-container grafico-oculto">
+          <h4>
+            <span><i class="fas fa-chart-pie"></i> Propiedad Social ADVC</span>
+            <button class="btn-expandir" aria-label="Ampliar gráfico">⤢</button>
+          </h4>
+          <canvas id="chartAdvc"></canvas>
+        </div>
+
+        <button id="btn-restaurar-graficos" aria-label="Restaurar gráficos"><i class="fas fa-eye"></i> Restaurar gráficos</button>
+      </aside>
+
+      <div id="panel-overlay"></div>
+
+      <div id="map-container">
+        <div id="map"></div>
+        <div id="coords-container"><span class="coord-label">📍</span><span class="coord-value" id="coords-value">—</span></div>
+        <div id="leyenda"></div>
+
+        <div id="dashboard-container">
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            <button id="btn-print-dashboard" title="Imprimir dashboard">🖨️ Imprimir</button>
+            <button id="btn-print-area-dashboard" title="Imprimir área seleccionada del dashboard">📄 Área</button>
+            <div id="filtros-cascade-wrap">
+              <button id="btn-filtros-cascade" title="Filtros del dashboard"><i class="fas fa-filter"></i> Filtros</button>
+              <div id="filtros-cascade-menu" role="menu">
+                <label for="filtro-casc-cat">Categoría de manejo</label>
+                <select id="filtro-casc-cat"><option value="">Todas</option></select>
+
+                <label for="filtro-casc-estado">Estado</label>
+                <select id="filtro-casc-estado"><option value="">Todos</option></select>
+
+                <label for="filtro-casc-prop">Tipo de propiedad ADVC</label>
+                <select id="filtro-casc-prop"><option value="">Todos</option></select>
+
+                <div class="filtros-cascade-btns">
+                  <button id="btn-aplicar-filtros-casc" class="primary">Aplicar + zoom</button>
+                  <button id="btn-limpiar-filtros-casc">Limpiar</button>
+                </div>
+              </div>
+            </div>
+            <button id="dashboard-close-btn" aria-label="Cerrar dashboard">✕</button>
+          </div>
+
+          <div class="dashboard-fusedash">
+            <div class="widget-card kpi-1">
+              <div class="kpi-accent"></div>
+              <div class="widget-header"><div class="widget-title">Superficie total ANP (ha)</div></div>
+              <div class="kpi-value" id="dash-kpi-sup">—</div>
+              <div class="kpi-sub">Hectáreas en Áreas Naturales Protegidas</div>
+            </div>
+
+            <div class="widget-card kpi-2">
+              <div class="kpi-accent"></div>
+              <div class="widget-header"><div class="widget-title">Total áreas ANP</div></div>
+              <div class="kpi-value" id="dash-kpi-count">—</div>
+              <div class="kpi-sub">Polígonos federales registrados</div>
+            </div>
+
+            <div class="widget-card kpi-3">
+              <div class="kpi-accent"></div>
+              <div class="widget-header"><div class="widget-title">Total ADVC</div></div>
+              <div class="kpi-value" id="dash-kpi-advc">—</div>
+              <div class="kpi-sub">Áreas voluntarias de conservación</div>
+            </div>
+
+            <div class="widget-card map-widget">
+              <div id="map-dashboard"></div>
+            </div>
+
+            <div class="widget-card kpi-leyenda" id="dashboard-leyenda-card" style="grid-column:span 12; padding:0.7rem;">
+              <div class="widget-header"><div class="widget-title"><i class="fas fa-palette"></i> Simbología — capas visibles</div></div>
+              <div id="dashboard-leyenda" style="font-size:0.58rem; line-height:1.4;"></div>
+            </div>
+
+            <div class="widget-card chart-donut">
+              <div class="widget-header"><div class="widget-title">Tipo de superficie protegida</div></div>
+              <div class="canvas-container"><canvas id="chart-terrestre-marina"></canvas></div>
+            </div>
+
+            <div class="widget-card chart-bar-cat">
+              <div class="widget-header"><div class="widget-title" id="chart-bar-cat-title">Superficie por categoría</div></div>
+              <div class="canvas-container"><canvas id="chart-bar-cat"></canvas></div>
+            </div>
+
+            <div class="widget-card tabla-widget">
+              <div class="widget-header"><div class="widget-title">Tabla de datos</div></div>
+              <div class="tabla-tabs">
+                <button class="active" data-tabla="anp">ANP</button>
+                <button data-tabla="advc">ADVC</button>
+              </div>
+              <div class="tabla-container" id="tabla-contenedor">
+                <table id="tabla-datos"><thead><tr></tr></thead><tbody></tbody></table>
+              </div>
+            </div>
+
+            <div class="widget-card chart-hbar-1">
+              <div class="widget-header"><div class="widget-title" id="chart-hbar-estados-title">Top estados por superficie ADVC</div></div>
+              <div class="canvas-container"><canvas id="chart-hbar-estados"></canvas></div>
+            </div>
+
+            <div class="widget-card chart-hbar-2">
+              <div class="widget-header"><div class="widget-title">Tipo de propiedad ADVC</div></div>
+              <div class="canvas-container"><canvas id="chart-advc-propiedad"></canvas></div>
+            </div>
+
+            <div class="widget-card chart-periodo" style="grid-column:span 6;">
+              <div class="widget-header"><div class="widget-title">ANP decretadas por periodo presidencial</div></div>
+              <div class="canvas-container" style="min-height:260px;"><canvas id="chart-periodo"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="assets/js/geovisor.js"></script>
+  </body>
+</html>
